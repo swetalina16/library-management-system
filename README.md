@@ -407,48 +407,78 @@ The application's state is almost entirely **server state** (books, users, trans
 - **npm** v9+
 - No database server required — SQLite is embedded
 
-### 1. Clone the repository
+---
 
+### Quick Start (copy-paste setup)
+
+Run these commands in order. Each block is a separate terminal step.
+
+**Step 1 — Clone the repo**
 ```bash
-git clone https://github.com/your-username/library-management-system.git
+git clone https://github.com/swetalina16/library-management-system.git
 cd library-management-system
 ```
 
-### 2. Install dependencies
-
+**Step 2 — Install backend dependencies**
 ```bash
-# Backend
 cd backend
-npm install
-
-# Frontend
-cd ../frontend
 npm install
 ```
 
-### 3. Start the backend
-
+**Step 3 — Start the backend** _(keep this terminal open)_
 ```bash
-cd backend
 npm run dev
-# API available at http://localhost:5000
-# The SQLite database is created automatically at backend/data/library.db
-# Seed data (12 books, 5 users) is inserted on first run
 ```
+> The SQLite database (`backend/data/library.db`) is created automatically on first run.
+> Seed data — **12 books** and **5 users** — is inserted automatically. No manual DB setup needed.
+>
+> API is now running at **http://localhost:5000**
 
-### 4. Start the frontend
-
-Open a new terminal:
-
+**Step 4 — Open a new terminal, install frontend dependencies**
 ```bash
 cd frontend
-npm run dev
-# App available at http://localhost:3000
+npm install
 ```
 
-### 5. Open the app
+**Step 5 — Start the frontend** _(keep this terminal open)_
+```bash
+npm run dev
+```
+> App is now running at **http://localhost:3000**
 
-Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
+**Step 6 — Open the app**
+
+Go to [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+### Reset the database
+
+To wipe all data and re-seed from scratch, just delete the database file and restart the backend:
+
+```bash
+# From the project root
+rm backend/data/library.db   # Mac/Linux
+# del backend\data\library.db  # Windows
+
+cd backend
+npm run dev   # database is recreated and re-seeded automatically
+```
+
+---
+
+### Resetting to a clean state (full reinstall)
+
+If you run into dependency issues:
+
+```bash
+# Remove all installed packages
+rm -rf backend/node_modules frontend/node_modules
+
+# Reinstall everything
+cd backend && npm install
+cd ../frontend && npm install
+```
 
 ---
 
