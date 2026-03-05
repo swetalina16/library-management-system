@@ -7,6 +7,8 @@ A full-stack web application for managing library book checkouts and returns. Bu
 ## Table of Contents
 
 - [System Architecture](#system-architecture)
+- [Functional Requirements](#functional-requirements)
+- [Non-Functional Requirements](#non-functional-requirements)
 - [Technologies Used](#technologies-used)
 - [Data Models](#data-models)
 - [API Endpoints](#api-endpoints)
@@ -22,37 +24,120 @@ A full-stack web application for managing library book checkouts and returns. Bu
 
 ## System Architecture
 
-### High-Level Overview
+### High-Level Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Browser (Client)                    │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │        React SPA  (Vite, React Router v6)        │   │
-│  │   - HomePage      (book catalog + filters)       │   │
-│  │   - CheckoutPage  (checkout form)                │   │
-│  │   - ReturnPage    (return form)                  │   │
-│  │   - TransactionsPage (history & status)          │   │
-│  └──────────────────┬──────────────────────────────┘   │
-└─────────────────────┼───────────────────────────────────┘
-                      │  HTTP / REST (JSON)
-                      │  (proxied via Vite dev server)
-┌─────────────────────▼───────────────────────────────────┐
-│               Node.js / Express API (port 5000)         │
-│   ┌──────────────┐  ┌───────────────┐  ┌────────────┐  │
-│   │  /api/books  │  │ /api/checkout │  │ /api/users │  │
-│   │  /api/return │  │ /api/transact.│  │            │  │
-│   └──────────────┘  └───────────────┘  └────────────┘  │
-│               Input validation (express-validator)      │
-└─────────────────────┬───────────────────────────────────┘
-                      │  better-sqlite3 (synchronous driver)
-┌─────────────────────▼───────────────────────────────────┐
-│              SQLite Database  (library.db)              │
-│      tables: users  ·  books  ·  transactions           │
-└─────────────────────────────────────────────────────────┘
+                ┌──────────────────────────┐
+                │        Web Browser        │
+                │  React SPA (Vite)        │
+                │                          │
+                │  Pages                   │
+                │  • Home (Books)          │
+                │  • Checkout              │
+                │  • Return                │
+                │  • Transactions          │
+                └─────────────┬────────────┘
+                              │
+                              │ HTTP / REST
+                              ▼
+                ┌──────────────────────────┐
+                │     Node.js Backend      │
+                │      Express Server      │
+                │                          │
+                │  API Routes              │
+                │  • /api/books            │
+                │  • /api/checkout         │
+                │  • /api/return           │
+                │  • /api/users            │
+                │  • /api/transactions     │
+                │                          │
+                │  Middleware              │
+                │  • Validation            │
+                │  • Error Handling        │
+                │  • Logging               │
+                └─────────────┬────────────┘
+                              │
+                              │ Database Driver
+                              ▼
+                ┌──────────────────────────┐
+                │       SQLite Database     │
+                │                          │
+                │ Tables                   │
+                │ • users                  │
+                │ • books                  │
+                │ • transactions           │
+                └──────────────────────────┘
 ```
 
 The frontend is a single-page application served on port 3000 during development, with all `/api/*` requests proxied to the Express backend on port 5000. In production, both can be served from the same origin by serving the Vite build output via Express.
+
+---
+
+## Functional Requirements
+
+The system supports the following core functional capabilities:
+
+### Book Management
+
+- View a paginated catalog of books.
+- Search books by title.
+- Filter books by genre.
+- View detailed information about a book.
+
+### User Management
+
+- View existing users.
+- Create new users.
+
+### Checkout & Return
+
+- Check out a book for a specific user.
+- Prevent checkout when no copies are available.
+- Prevent duplicate checkout of the same book by the same user.
+- Return a book and update its availability.
+
+### Transaction Management
+
+- Track checkout history.
+- View active and returned transactions.
+- Filter transactions by user and status.
+
+### Recommendations (Enhancement)
+
+- Suggest similar books based on genre.
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+
+- Pagination prevents large datasets from being returned in a single request.
+- Indexed database columns ensure efficient lookups.
+
+### Reliability
+
+- Database constraints enforce data integrity.
+- Atomic transactions prevent race conditions during checkout/return operations.
+
+### Scalability
+
+- Backend APIs are stateless and can be horizontally scaled.
+- The architecture can easily migrate from SQLite to PostgreSQL for production workloads.
+
+### Security
+
+- Input validation using express-validator.
+- SQL injection prevented through parameterized queries.
+
+### Maintainability
+
+- Modular project structure (routes, middleware, services).
+- Clear separation between frontend and backend.
+
+### Observability
+
+- HTTP request logging implemented with Morgan.
 
 ---
 
