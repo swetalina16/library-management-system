@@ -1,16 +1,9 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 const { getDb } = require('../database');
+const validate = require('../middleware/validate');
 
 const router = express.Router();
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ error: 'Validation failed', details: errors.array() });
-  }
-  next();
-};
 
 // GET /api/users
 router.get('/', (req, res) => {
@@ -29,9 +22,9 @@ router.post(
   '/',
   [
     body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('email').trim().isEmail().normalizeEmail().withMessage('A valid email address is required'),
   ],
-  handleValidationErrors,
+  validate,
   (req, res) => {
     try {
       const db = getDb();
