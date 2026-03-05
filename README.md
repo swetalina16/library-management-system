@@ -16,6 +16,7 @@ A full-stack web application for managing library book checkouts and returns. Bu
 - [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Assumptions](#assumptions)
+- [Future Improvements](#future-improvements)
 
 ---
 
@@ -421,3 +422,12 @@ library-management-system/
 5. **`available_copies` is denormalized.** Rather than computing availability by counting active transactions on every query, we store `available_copies` on the `books` table and update it atomically during checkout/return. This trades a small risk of drift (mitigated by atomic transactions) for dramatically faster read performance.
 
 6. **SQLite is appropriate for this context.** A production multi-server deployment would use PostgreSQL, but SQLite is fully functional and appropriate for a local demonstration and single-server deployments.
+
+---
+
+## Future Improvements
+
+- **Authentication and authorization** — JWT or session-based login for patrons and librarians
+- **Replace SQLite with PostgreSQL** — For production deployments with concurrent users
+- **Containerization using Docker** — Docker Compose to run frontend, backend, and database as containers
+- **CI/CD pipeline** — GitHub Actions for automated tests, linting, and deployments
