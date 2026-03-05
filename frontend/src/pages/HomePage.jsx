@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { fetchBooks, fetchGenres } from '../api/client';
 import BookCard from '../components/BookCard';
 import Spinner from '../components/Spinner';
@@ -11,11 +11,13 @@ export default function HomePage() {
   const [search, setSearch] = useState('');
   const [genre, setGenre] = useState('');
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [sort, setSort] = useState('title');
   const [inputVal, setInputVal] = useState('');
 
   const queryParams = {
     page,
     limit: 12,
+    sort,
     ...(search && { search }),
     ...(genre && { genre }),
     ...(availableOnly && { available: true }),
@@ -24,7 +26,7 @@ export default function HomePage() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['books', queryParams],
     queryFn: () => fetchBooks(queryParams),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
 
@@ -45,6 +47,11 @@ export default function HomePage() {
     setPage(1);
   };
 
+  const handleSortChange = (e) => {
+    setSort(e.target.value);
+    setPage(1);
+  };
+
   const handleAvailableChange = (e) => {
     setAvailableOnly(e.target.checked);
     setPage(1);
@@ -55,6 +62,7 @@ export default function HomePage() {
     setInputVal('');
     setGenre('');
     setAvailableOnly(false);
+    setSort('title');
     setPage(1);
   };
 
@@ -125,6 +133,19 @@ export default function HomePage() {
           {genres.map((g) => (
             <option key={g} value={g}>{g}</option>
           ))}
+        </select>
+
+        <select
+          className="form-control"
+          value={sort}
+          onChange={handleSortChange}
+          style={{ maxWidth: '180px' }}
+          aria-label="Sort books by"
+        >
+          <option value="title">Sort: Title</option>
+          <option value="author">Sort: Author</option>
+          <option value="status">Sort: Status</option>
+          <option value="published_year">Sort: Newest First</option>
         </select>
         <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.875rem', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           <input

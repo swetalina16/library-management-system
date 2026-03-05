@@ -37,12 +37,29 @@ export const checkoutBook = async (payload) => {
   return data;
 };
 
+// payload: { book_ids: [1, 2, 3], user_id: 4 }
+export const batchCheckoutBooks = async (payload) => {
+  const { data } = await client.post('/checkout/batch', payload);
+  return data;
+};
+
 export const returnBook = async (payload) => {
   const { data } = await client.post('/return', payload);
   return data;
 };
 
+// payload: { transaction_ids: [1, 2, 3] }
+export const batchReturnBooks = async (payload) => {
+  const { data } = await client.post('/return/batch', payload);
+  return data;
+};
+
 export const fetchTransactions = async (params = {}) => {
   const { data } = await client.get('/transactions', { params });
+  return data;
+};
+
+export const fetchRecommendations = async (bookId) => {
+  const { data } = await client.get(`/books/${bookId}/recommendations`);
   return data;
 };

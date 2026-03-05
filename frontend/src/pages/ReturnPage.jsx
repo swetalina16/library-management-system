@@ -1,27 +1,32 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTransactions, returnBook } from '../api/client';
+import { fetchTransactions, batchReturnBooks } from '../api/client';
 import Spinner from '../components/Spinner';
 import Alert from '../components/Alert';
 
+const isOverdue = (tx) => new Date(tx.due_date) < new Date();
+
 export default function ReturnPage() {
   const queryClient = useQueryClient();
-  const [transactionId, setTransactionId] = useState('');
+
+  const [currentTxId, setCurrentTxId] = useState('');
+  const [queue, setQueue] = useState([]);               // transactions queued for return
+  const [userFilter, setUserFilter] = useState('');
   const [result, setResult] = useState(null);
   const [errors, setErrors] = useState({});
-  const [userFilter, setUserFilter] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['transactions', { status: 'active' }],
     queryFn: () => fetchTransactions({ status: 'active' }),
     staleTime: 10_000,
   });
 
   const mutation = useMutation({
-    mutationFn: returnBook,
+    mutationFn: batchReturnBooks,
     onSuccess: (res) => {
-      setResult({ type: 'success', data: res });
-      setTransactionId('');
+      setResult({ type: 'done', data: res });
+      setQueue([]);
+      setCurrentTxId('');
       setErrors({});
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
@@ -33,42 +38,63 @@ export default function ReturnPage() {
   });
 
   const activeTransactions = data?.transactions || [];
-  const filteredTransactions = userFilter
-    ? activeTransactions.filter((t) =>
-        t.user_name.toLowerCase().includes(userFilter.toLowerCase()) ||
-        t.user_email.toLowerCase().includes(userFilter.toLowerCase())
-      )
-    : activeTransactions;
 
-  const selectedTx = activeTransactions.find((t) => t.id === parseInt(transactionId));
+  // IDs already in the return queue
+  const queueIds = queue.map((t) => t.id);
 
-  const isOverdue = (tx) => new Date(tx.due_date) < new Date();
+  // Filter the dropdown: by user search AND not already queued
+  const filteredTransactions = activeTransactions.filter((t) => {
+    const matchesUser = !userFilter ||
+      t.user_name.toLowerCase().includes(userFilter.toLowerCase()) ||
+      t.user_email.toLowerCase().includes(userFilter.toLowerCase());
+    return matchesUser && !queueIds.includes(t.id);
+  });
 
-  const validate = () => {
-    const errs = {};
-    if (!transactionId) errs.transactionId = 'Please select an active checkout record.';
-    return errs;
+  const removeFromQueue = (txId) => {
+    setQueue((prev) => prev.filter((t) => t.id !== txId));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    if (queue.length === 0) {
+      setErrors({ queue: 'Please select a checkout record first.' });
+      return;
+    }
+
     setResult(null);
-    mutation.mutate({ transaction_id: parseInt(transactionId) });
+    mutation.mutate({ transaction_ids: queueIds });
   };
+
+  const successCount = result?.data?.results?.filter((r) => r.success).length || 0;
+  const failCount    = result?.data?.results?.filter((r) => !r.success).length || 0;
 
   return (
     <div className="container">
       <div className="page-header">
-        <h1 className="page-title">📥 Return a Book</h1>
-        <p className="page-subtitle">Select an active checkout to process a book return</p>
+        <h1 className="page-title">📥 Return Books</h1>
+        <p className="page-subtitle">Add checkouts to the return queue, then confirm all at once</p>
       </div>
 
-      <div style={{ maxWidth: '620px' }}>
-        {result?.type === 'success' && (
-          <Alert type="success" onClose={() => setResult(null)}>
-            <strong>Return successful!</strong> &ldquo;{result.data.transaction.book_title}&rdquo; returned by {result.data.transaction.user_name}.
+      <div style={{ maxWidth: '640px' }}>
+
+        {/* Batch result summary */}
+        {result?.type === 'done' && (
+          <Alert type={failCount === 0 ? 'success' : 'warning'} onClose={() => setResult(null)}>
+            <div>
+              <strong>
+                {successCount > 0 && `${successCount} book${successCount > 1 ? 's' : ''} returned successfully!`}
+                {failCount > 0 && ` ${failCount} failed.`}
+              </strong>
+              <ul style={{ margin: '.5rem 0 0', paddingLeft: '1.25rem', fontSize: '.875rem' }}>
+                {result.data.results.map((r) => (
+                  <li key={r.transaction_id} style={{ color: r.success ? 'inherit' : 'var(--color-danger)' }}>
+                    {r.success ? '✓' : '✕'} &quot;{r.book_title}&quot; — {r.user_name}
+                    {!r.success && ` (${r.error})`}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </Alert>
         )}
         {result?.type === 'error' && (
@@ -82,9 +108,16 @@ export default function ReturnPage() {
               <span className="badge badge-warning">{activeTransactions.length} active</span>
             )}
           </div>
+
           <div className="card-body">
+            {isError && (
+              <Alert type="danger">
+                Failed to load active checkouts: {error?.response?.data?.error || error.message}
+              </Alert>
+            )}
+
             {isLoading ? (
-              <Spinner />
+              <Spinner message="Loading active checkouts..." />
             ) : activeTransactions.length === 0 ? (
               <div className="empty-state" style={{ padding: '2rem 0' }}>
                 <div className="empty-state-icon">🎉</div>
@@ -93,6 +126,8 @@ export default function ReturnPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
+
+                {/* User filter */}
                 <div className="form-group">
                   <label className="form-label" htmlFor="userFilterInput">Filter by user</label>
                   <input
@@ -105,46 +140,86 @@ export default function ReturnPage() {
                   />
                 </div>
 
+                {/* Dropdown — selecting instantly adds to queue */}
                 <div className="form-group mt-3">
-                  <label className="form-label" htmlFor="txSelect">Active Checkout *</label>
+                  <label className="form-label">Select checkout to return *</label>
                   <select
-                    id="txSelect"
-                    className={`form-control${errors.transactionId ? ' error' : ''}`}
-                    value={transactionId}
-                    onChange={(e) => { setTransactionId(e.target.value); setErrors({}); }}
-                    aria-describedby={errors.transactionId ? 'txError' : undefined}
+                    className={`form-control${errors.queue ? ' error' : ''}`}
+                    value={currentTxId}
+                    onChange={(e) => {
+                      const selected = activeTransactions.find((t) => t.id === parseInt(e.target.value));
+                      if (selected && !queueIds.includes(selected.id)) {
+                        setQueue((prev) => [...prev, selected]);
+                        setErrors((p) => ({ ...p, queue: '' }));
+                      }
+                      setCurrentTxId('');
+                    }}
+                    aria-label="Select a checkout record"
                   >
-                    <option value="">— Select a checkout record —</option>
+                    <option value="">— Select a checkout to add —</option>
                     {filteredTransactions.map((t) => (
                       <option key={t.id} value={t.id}>
                         {isOverdue(t) ? '⚠ ' : ''}[#{t.id}] &quot;{t.book_title}&quot; — {t.user_name} (due {new Date(t.due_date).toLocaleDateString()})
                       </option>
                     ))}
                   </select>
-                  {errors.transactionId && <p id="txError" className="form-error">{errors.transactionId}</p>}
                 </div>
 
-                {selectedTx && (
-                  <div className={`alert mt-3 ${isOverdue(selectedTx) ? 'alert-warning' : 'alert-info'}`}>
-                    <span>📋</span>
-                    <div style={{ fontSize: '.875rem' }}>
-                      <div><strong>{selectedTx.book_title}</strong> by {selectedTx.book_author}</div>
-                      <div>Checked out by: <strong>{selectedTx.user_name}</strong> ({selectedTx.user_email})</div>
-                      <div>Checked out on: {new Date(selectedTx.checkout_date).toLocaleDateString()}</div>
-                      <div>
-                        Due: <strong>{new Date(selectedTx.due_date).toLocaleDateString()}</strong>
-                        {isOverdue(selectedTx) && <span style={{ color: 'var(--color-warning)', marginLeft: '.5rem' }}>⚠ OVERDUE</span>}
-                      </div>
+                {/* Return queue */}
+                {queue.length > 0 && (
+                  <div className="card mt-3" style={{ border: '1px solid var(--color-success, #16a34a)' }}>
+                    <div className="card-header" style={{ background: 'var(--color-success-light, #f0fdf4)' }}>
+                      <span className="card-title" style={{ fontSize: '.875rem' }}>📥 Return Queue ({queue.length})</span>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQueue([])}>
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                      {queue.map((tx) => (
+                        <div
+                          key={tx.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '.75rem',
+                            padding: '.5rem .75rem',
+                            borderRadius: '6px',
+                            background: isOverdue(tx) ? '#fff7ed' : 'var(--bg-secondary, #f8fafc)',
+                            border: isOverdue(tx) ? '1px solid #fed7aa' : '1px solid transparent',
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontWeight: 600, fontSize: '.9rem' }}>{tx.book_title}</span>
+                            <span className="text-sm text-muted" style={{ marginLeft: '.5rem' }}>{tx.user_name}</span>
+                            {isOverdue(tx) && (
+                              <span style={{ marginLeft: '.5rem', fontSize: '.75rem', color: 'var(--color-danger)', fontWeight: 600 }}>⚠ OVERDUE</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFromQueue(tx.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', fontWeight: 700, fontSize: '1rem', lineHeight: 1 }}
+                            aria-label={`Remove ${tx.book_title}`}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
+                {errors.queue && <p className="form-error mt-1">{errors.queue}</p>}
 
                 <button
                   type="submit"
                   className="btn btn-success btn-full mt-4"
                   disabled={mutation.isPending}
                 >
-                  {mutation.isPending ? 'Processing…' : '📥 Confirm Return'}
+                  {mutation.isPending
+                    ? 'Processing…'
+                    : queue.length > 1
+                      ? `📥 Return ${queue.length} Books`
+                      : '📥 Confirm Return'}
                 </button>
               </form>
             )}
