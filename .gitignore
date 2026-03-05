@@ -1,0 +1,10 @@
+node_modules/
+backend/data/
+backend/coverage/
+frontend/dist/
+frontend/coverage/
+*.db
+.env
+.env.local
+.DS_Store
+Thumbs.db
