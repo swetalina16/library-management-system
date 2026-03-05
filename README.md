@@ -17,6 +17,7 @@ A full-stack web application for managing library book checkouts and returns. Bu
 - [State Management](#state-management)
 - [Performance Considerations](#performance-considerations)
 - [Getting Started](#getting-started)
+- [AI Recommendations (Optional)](#ai-recommendations-optional)
 - [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Assumptions](#assumptions)
@@ -310,6 +311,7 @@ CREATE TABLE transactions (
 | GET    | `/api/books`        | List books (supports `page`, `limit`, `search`, `genre`, `available` query params) |
 | GET    | `/api/books/genres` | List all distinct genres                         |
 | GET    | `/api/books/:id`    | Get a single book by ID                          |
+| GET    | `/api/books/:id/recommendations` | AI-powered “you might also like” suggestions (optional; requires `OPENAI_API_KEY`) |
 
 ### Transactions
 
@@ -452,6 +454,41 @@ Go to [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+## AI Recommendations (Optional)
+
+The checkout page can show a **“✨ You might also like”** section with up to 3 book suggestions powered by OpenAI (GPT-4o-mini). The backend picks candidate books and asks the model to choose the most similar ones.
+
+### Setup
+
+1. Get an [OpenAI API key](https://platform.openai.com/api-keys).
+2. In the **backend** folder, create a file named `.env` (it is git-ignored).
+3. Add one line:
+   ```env
+   OPENAI_API_KEY=sk-your-actual-key-here
+   ```
+4. Restart the backend (`npm run dev` in `backend/`).
+
+The frontend calls `GET /api/books/:id/recommendations` when you view a book on the checkout page. If the key is valid, you’ll see the AI recommendations card; otherwise the section is hidden.
+
+### When the API key is missing or invalid
+
+In `backend/src/services/aiRecommendations.js`, the AI logic runs only when a valid key is set:
+
+```javascript
+async function getAIRecommendations(book, candidates) {
+  // Silently return nothing if the API key is not configured
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-openai-api-key-here') {
+    return [];
+  }
+  // ...
+}
+```
+
+> **Attenzione — Comportamento senza chiave API**  
+> If `OPENAI_API_KEY` is **not set**, or is set to the placeholder `your-openai-api-key-here`, the service **returns an empty array** and does not call OpenAI. The frontend then **hides the “You might also like” section** entirely (no error message, no red banner). So if you don’t see the AI recommendations, check that the backend has a valid key in `.env` and that the server was restarted after adding it.
+
+---
+
 ### Reset the database
 
 To wipe all data and re-seed from scratch, just delete the database file and restart the backend:
@@ -532,9 +569,11 @@ library-management-system/
 │   │   ├── server.js           # HTTP server entry point
 │   │   ├── database.js         # SQLite connection, schema, seed
 │   │   ├── routes/
-│   │   │   ├── books.js        # GET /api/books, /api/books/genres, /api/books/:id
+│   │   │   ├── books.js        # GET /api/books, /api/books/genres, /api/books/:id, /api/books/:id/recommendations
 │   │   │   ├── transactions.js # POST /api/checkout, POST /api/return, GET /api/transactions
 │   │   │   └── users.js        # GET /api/users, POST /api/users
+│   │   ├── services/
+│   │   │   └── aiRecommendations.js  # OpenAI-based "you might also like" (optional; requires OPENAI_API_KEY)
 │   │   └── middleware/
 │   │       └── errorHandler.js # 404 + 500 handlers
 │   ├── tests/
