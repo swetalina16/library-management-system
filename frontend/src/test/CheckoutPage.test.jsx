@@ -20,7 +20,7 @@ function renderWithProviders(ui, { route = '/' } = {}) {
 describe('CheckoutPage', () => {
   it('renders the checkout form heading', () => {
     renderWithProviders(<CheckoutPage />);
-    expect(screen.getByText(/Checkout a Book/i)).toBeInTheDocument();
+    expect(screen.getByText(/Checkout Books/i)).toBeInTheDocument();
   });
 
   it('renders the form after data loads', async () => {
@@ -75,15 +75,14 @@ describe('CheckoutPage', () => {
     await user.click(screen.getByRole('button', { name: /Confirm Checkout/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Checkout successful/i)).toBeInTheDocument();
+      expect(screen.getByText(/checked out successfully/i)).toBeInTheDocument();
     });
   });
 
   it('pre-selects book when book_id is in query params', async () => {
     renderWithProviders(<CheckoutPage />, { route: '/checkout?book_id=1' });
     await waitFor(() => {
-      const bookSelect = screen.getByLabelText(/Book/i);
-      expect(bookSelect.value).toBe('1');
+      expect(screen.getByText('The Great Gatsby')).toBeInTheDocument();
     });
   });
 });

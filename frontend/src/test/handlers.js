@@ -68,6 +68,49 @@ export const handlers = [
     return HttpResponse.json({ transactions: mockTransactions });
   }),
 
+  http.post('/api/checkout/batch', async ({ request }) => {
+    const body = await request.json();
+    const user = mockUsers.find((u) => u.id === body.user_id);
+    if (!user) return HttpResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const results = (body.book_ids || []).map((book_id) => {
+      const book = mockBooks.find((b) => b.id === book_id);
+      if (!book) return { book_id, success: false, error: 'Book not found' };
+      if (book.available_copies < 1) return { book_id, book_title: book.title, success: false, error: 'No copies available' };
+      return {
+        book_id,
+        book_title: book.title,
+        success: true,
+        transaction: {
+          id: 10, book_id, user_id: user.id, status: 'active',
+          checkout_date: new Date().toISOString(),
+          due_date: new Date(Date.now() + 14 * 86400000).toISOString(),
+          return_date: null,
+          book_title: book.title, user_name: user.name, user_email: user.email,
+        },
+      };
+    });
+
+    return HttpResponse.json({ results, user_name: user.name });
+  }),
+
+  http.post('/api/return/batch', async ({ request }) => {
+    const body = await request.json();
+    const results = (body.transaction_ids || []).map((transaction_id) => {
+      const tx = mockTransactions.find((t) => t.id === transaction_id);
+      if (!tx) return { transaction_id, success: false, error: 'Transaction not found' };
+      if (tx.status === 'returned') return { transaction_id, book_title: tx.book_title, user_name: tx.user_name, success: false, error: 'Already returned' };
+      return {
+        transaction_id,
+        book_title: tx.book_title,
+        user_name: tx.user_name,
+        success: true,
+        transaction: { ...tx, status: 'returned', return_date: new Date().toISOString() },
+      };
+    });
+    return HttpResponse.json({ results });
+  }),
+
   http.post('/api/checkout', async ({ request }) => {
     const body = await request.json();
     const book = mockBooks.find((b) => b.id === body.book_id);

@@ -42,9 +42,9 @@ describe('TransactionsPage', () => {
   it('shows status badges', async () => {
     renderWithProviders(<TransactionsPage />);
     await waitFor(() => {
-      expect(screen.getByText(/Active/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Active/i).length).toBeGreaterThan(0);
     });
-    expect(screen.getByText(/Returned/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Returned/i).length).toBeGreaterThan(0);
   });
 
   it('renders status filter dropdown', () => {

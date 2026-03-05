@@ -20,15 +20,15 @@ function renderWithProviders(ui) {
 describe('ReturnPage', () => {
   it('renders the return form heading', () => {
     renderWithProviders(<ReturnPage />);
-    expect(screen.getByText(/Return a Book/i)).toBeInTheDocument();
+    expect(screen.getByText(/Return Books/i)).toBeInTheDocument();
   });
 
   it('shows active checkout options in the select', async () => {
     renderWithProviders(<ReturnPage />);
     await waitFor(() => {
-      expect(screen.getByLabelText(/Active Checkout/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Select a checkout record/i)).toBeInTheDocument();
     });
-    const select = screen.getByLabelText(/Active Checkout/i);
+    const select = screen.getByLabelText(/Select a checkout record/i);
     expect(select).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe('ReturnPage', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /Confirm Return/i }));
-    expect(screen.getByText(/Please select an active checkout/i)).toBeInTheDocument();
+    expect(screen.getByText(/Please select a checkout record/i)).toBeInTheDocument();
   });
 
   it('displays transaction details after selecting one', async () => {
@@ -49,10 +49,10 @@ describe('ReturnPage', () => {
     renderWithProviders(<ReturnPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Active Checkout/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Select a checkout record/i)).toBeInTheDocument();
     });
 
-    const select = screen.getByLabelText(/Active Checkout/i);
+    const select = screen.getByLabelText(/Select a checkout record/i);
     await user.selectOptions(select, '1');
 
     await waitFor(() => {
@@ -66,14 +66,14 @@ describe('ReturnPage', () => {
     renderWithProviders(<ReturnPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Active Checkout/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Select a checkout record/i)).toBeInTheDocument();
     });
 
-    await user.selectOptions(screen.getByLabelText(/Active Checkout/i), '1');
+    await user.selectOptions(screen.getByLabelText(/Select a checkout record/i), '1');
     await user.click(screen.getByRole('button', { name: /Confirm Return/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Return successful/i)).toBeInTheDocument();
+      expect(screen.getByText(/returned successfully/i)).toBeInTheDocument();
     });
   });
 });

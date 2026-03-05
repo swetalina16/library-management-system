@@ -36,9 +36,9 @@ describe('Spinner component', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('renders with custom aria-label', () => {
+  it('renders with custom message', () => {
     render(<Spinner message="Loading books..." />);
-    expect(screen.getByLabelText('Loading books...')).toBeInTheDocument();
+    expect(screen.getByText('Loading books...')).toBeInTheDocument();
   });
 });
 
