@@ -10,6 +10,7 @@ A full-stack web application for managing library book checkouts and returns. Bu
 - [Functional Requirements](#functional-requirements)
 - [Non-Functional Requirements](#non-functional-requirements)
 - [High-Level Design Diagram](#high-level-design-diagram)
+- [Architecture Decisions](#architecture-decisions)
 - [Technologies Used](#technologies-used)
 - [Data Models](#data-models)
 - [API Endpoints](#api-endpoints)
@@ -183,6 +184,14 @@ flowchart TB
 ```
 
 > **Note:** This Mermaid diagram renders on GitHub, GitLab, and most markdown viewers. For a draw.io-style editor, you can recreate it at [draw.io](https://app.diagrams.net/) and export as PNG/SVG to add as an image.
+
+---
+
+## Architecture Decisions
+
+1. **SQLite** chosen for simplicity and zero-configuration.
+2. **TanStack Query** chosen for server state caching.
+3. **Express** chosen for lightweight API layer.
 
 ---
 
