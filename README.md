@@ -9,6 +9,7 @@ A full-stack web application for managing library book checkouts and returns. Bu
 - [System Architecture](#system-architecture)
 - [Functional Requirements](#functional-requirements)
 - [Non-Functional Requirements](#non-functional-requirements)
+- [High-Level Design Diagram](#high-level-design-diagram)
 - [Technologies Used](#technologies-used)
 - [Data Models](#data-models)
 - [API Endpoints](#api-endpoints)
@@ -138,6 +139,50 @@ The system supports the following core functional capabilities:
 ### Observability
 
 - HTTP request logging implemented with Morgan.
+
+---
+
+## High-Level Design Diagram
+
+The following diagram illustrates the system architecture in a layered view. It renders automatically on GitHub.
+
+```mermaid
+flowchart TB
+    subgraph Client["Client Tier - Web Browser"]
+        React["React SPA (Vite + React Router)"]
+        Home["Home - Books"]
+        Checkout["Checkout"]
+        Return["Return"]
+        Trans["Transactions"]
+        React --> Home
+        React --> Checkout
+        React --> Return
+        React --> Trans
+    end
+
+    subgraph Backend["Server Tier - Node.js + Express"]
+        Express["Express Server"]
+        API["/api/books, /checkout, /return, /users, /transactions"]
+        MW["Middleware: Validation, Error Handler, Morgan"]
+        Express --> API
+        API --> MW
+    end
+
+    subgraph DB["Data Tier - SQLite"]
+        DBFile[(library.db)]
+        T1["users"]
+        T2["books"]
+        T3["transactions"]
+        DBFile --> T1
+        DBFile --> T2
+        DBFile --> T3
+    end
+
+    Client -->|"HTTP REST"| Backend
+    Backend -->|"better-sqlite3"| DB
+```
+
+> **Note:** This Mermaid diagram renders on GitHub, GitLab, and most markdown viewers. For a draw.io-style editor, you can recreate it at [draw.io](https://app.diagrams.net/) and export as PNG/SVG to add as an image.
 
 ---
 
